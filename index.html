@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MemoryVault</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0e17; color: #fffffe; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 2rem; margin-bottom: 10px; color: #ff8906; }
+    .sub { color: #a7a9be; margin-bottom: 30px; }
+    .card { background: #1a1a2e; padding: 20px; border-radius: 16px; margin-bottom: 16px; border-left: 4px solid #ff8906; }
+    .card .mood { font-size: 1.5rem; }
+    .card .date { color: #a7a9be; font-size: 0.8rem; }
+    .card .title { font-weight: bold; font-size: 1.1rem; margin: 8px 0; }
+    .card .content { color: #e0e0e0; line-height: 1.5; white-space: pre-wrap; }
+    .card .tag { display: inline-block; background: #2d2d44; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; margin-right: 4px; }
+    .btn { background: #ff8906; color: #0f0e17; border: none; padding: 12px 24px; border-radius: 50px; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: #2d2d44; color: #fffffe; }
+    .btn-danger { background: #e53170; }
+    input, textarea, select { width: 100%; padding: 12px; margin: 8px 0 16px; border-radius: 12px; border: none; background: #2d2d44; color: #fffffe; font-size: 1rem; }
+    textarea { min-height: 100px; resize: vertical; }
+    .hidden { display: none; }
+    .flex { display: flex; gap: 10px; }
+    .flex .btn { flex: 1; }
+    .mood-selector { display: flex; gap: 10px; margin: 12px 0; }
+    .mood-selector button { font-size: 2rem; background: none; border: 2px solid transparent; border-radius: 12px; padding: 8px 16px; cursor: pointer; }
+    .mood-selector button.active { border-color: #ff8906; background: #2d2d44; }
+    .profile-pic { 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 50%; 
+      object-fit: cover;
+      border: 2px solid #ff8906;
+    }
+    .profile-pic-large {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #ff8906;
+      margin-bottom: 10px;
+    }
+    .user-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .user-info {
+      flex: 1;
+    }
+    .entry-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .entry-author .profile-pic {
+      width: 28px;
+      height: 28px;
+      border-width: 1px;
+    }
+    .entry-author .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .profile-upload {
+      margin: 12px 0;
+    }
+    .profile-upload label {
+      display: inline-block;
+      background: #2d2d44;
+      padding: 8px 16px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .profile-upload input[type="file"] {
+      display: none;
+    }
+    .private-badge {
+      display: inline-block;
+      background: #2d2d44;
+      color: #a7a9be;
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin-left: 8px;
+    }
+    .loading {
+      text-align: center;
+      color: #a7a9be;
+      padding: 40px 0;
+    }
+    .error {
+      background: #e53170;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .success {
+      background: #2ecc71;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+
+  <div id="authSection">
+    <h1>🔐 MemoryVault</h1>
+    <p class="sub">Your private memory journal</p>
+    <div id="errorMsg" class="error"></div>
+    <div id="successMsg" class="success"></div>
+    <div id="loginForm">
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <div class="flex">
+        <button class="btn" id="loginBtn">Login</button>
+        <button class="btn btn-secondary" id="signupBtn">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainSection" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h1>📖 MemoryVault</h1>
+      <button class="btn btn-danger" id="logoutBtn" style="padding:8px 16px;font-size:0.8rem;width:auto;">Logout</button>
+    </div>
+    <p class="sub" style="margin-bottom:16px;">Only you can see your memories. Completely private. 🔒</p>
+
+    <div class="card" style="border-left-color: #7f5af0;">
+      <div class="user-header">
+        <img id="profileImg" class="profile-pic-large" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%232d2d44'/%3E%3Ctext x='40' y='48' text-anchor='middle' font-size='32' fill='%23a7a9be'%3E?%3C/text%3E%3C/svg%3E" alt="Profile">
+        <div class="user-info">
+          <p style="font-size:1.2rem;font-weight:bold;" id="greeting">Hey, friend 👋</p>
+          <div class="profile-upload">
+            <label for="profileUpload">🖼️ Upload Profile Picture</label>
+            <input type="file" id="profileUpload" accept="image/*">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>✨ New Memory</h3>
+      <input type="text" id="entryTitle" placeholder="Title (e.g., My coffee chat)">
+      <textarea id="entryContent" placeholder="What happened? How did it feel?"></textarea>
+      
+      <label>How are you feeling?</label>
+      <div class="mood-selector" id="moodSelector">
+        <button data-mood="1">😢</button>
+        <button data-mood="2">😕</button>
+        <button data-mood="3">😐</button>
+        <button data-mood="4">😊</button>
+        <button data-mood="5">🤩</button>
+      </div>
+      
+      <input type="text" id="entryTags" placeholder="Tags (comma-separated, e.g., funny, deep)">
+      <button class="btn" id="saveBtn">💾 Save Memory</button>
+    </div>
+
+    <h3 style="margin:20px 0 10px;">📅 Your Memories</h3>
+    <div id="timeline">
+      <div class="loading">Loading your memories...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // ⚠️ YOU'LL CHANGE THIS URL AFTER DEPLOYMENT ⚠️
+  // ============================================================
+  const PB_URL = "https://your-pocketbase-service.on-northflank.app";
+  // ============================================================
+
+  let currentUser = null;
+  let authToken = null;
+
+  const authSection = document.getElementById('authSection');
+  const mainSection = document.getElementById('mainSection');
+  const timeline = document.getElementById('timeline');
+  const greeting = document.getElementById('greeting');
+  const profileImg = document.getElementById('profileImg');
+  const errorMsg = document.getElementById('errorMsg');
+  const successMsg = document.getElementById('successMsg');
+  let selectedMood = 3;
+  let refreshInterval = null;
+
+  function showError(message) {
+    errorMsg.textContent = message;
+    errorMsg.style.display = 'block';
+    successMsg.style.display = 'none';
+    setTimeout(() => errorMsg.style.display = 'none', 5000);
+  }
+
+  function showSuccess(message) {
+    successMsg.textContent = message;
+    successMsg.style.display = 'block';
+    errorMsg.style.display = 'none';
+    setTimeout(() => successMsg.style.display = 'none', 3000);
+  }
+
+  document.querySelectorAll('.mood-selector button').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.mood-selector button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedMood = parseInt(btn.dataset.mood);
+    };
+  });
+  document.querySelector('.mood-selector button[data-mood="3"]').classList.add('active');
+
+  document.getElementById('profileUpload').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!currentUser) return showError('Please login first');
+
+    const formData = new FormData();
+    formData.append('profile_pic', file);
+
+    try {
+      const res = await fetch(`${PB_URL}/api/collections/users/records/${currentUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': authToken },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const fileUrl = `${PB_URL}/api/files/users/${currentUser.id}/${data.profile_pic}`;
+      currentUser.profile_pic = data.profile_pic;
+      profileImg.src = fileUrl;
+      showSuccess('Profile picture updated! 🎉');
+      loadEntries();
+    } catch (err) {
+      showError('Upload failed: ' + err.message);
+    }
+  };
+
+  document.getElementById('loginBtn').onclick = async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+
+    if (!email || !pass) {
+      return showError('Please enter email and password');
+    }
+
+    try {
+      const res = await fetch(`${PB_URL}/api/collections/users/auth-with-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: email, password: pass })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      authToken = data.token;
+      currentUser = data.record;
+      
+      authSection.classList.add('hidden');
+      mainSection.classList.remove('hidden');
+      greeting.textContent = `Hey, ${currentUser.username} 👋`;
+      
+      if (currentUser.profile_pic) {
+        profileImg.src = `${PB_URL}/api/files/users/${currentUser.id}/${currentUser.profile_pic}`;
+      }
+
+      showSuccess('Logged in! 🎉');
+      loadEntries();
+
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(() => {
+        if (currentUser) loadEntries();
+      }, 10000);
+
+      localStorage.setItem('pb_token', authToken);
+      localStorage.setItem('pb_user', JSON.stringify(currentUser));
+
+    } catch (err) {
+      showError('Login error: ' + err.message);
+    }
+  };
+
+  document.getElementById('signupBtn').onclick = async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+
+    if (!email || !pass) {
+      return showError('Please enter email and password');
+    }
+
+    if (pass.length < 6) {
+      return showError('Password must be at least 6 characters');
+    }
+
+    try {
+      const username = email.split('@')[0];
+
+      const res = await fetch(`${PB_URL}/api/collections/users/records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: pass,
+          passwordConfirm: pass,
+          username: username
+        })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      showSuccess('Account created! Please login. 🎉');
+      document.getElementById('loginPassword').value = '';
+    } catch (err) {
+      showError('Signup error: ' + err.message);
+    }
+  };
+
+  document.getElementById('logoutBtn').onclick = () => {
+    currentUser = null;
+    authToken = null;
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
+    localStorage.removeItem('pb_token');
+    localStorage.removeItem('pb_user');
+    authSection.classList.remove('hidden');
+    mainSection.classList.add('hidden');
+    timeline.innerHTML = '<div class="loading">Loading your memories...</div>';
+  };
+
+  document.getElementById('saveBtn').onclick = async () => {
+    if (!currentUser) return showError('Please login first');
+
+    const title = document.getElementById('entryTitle').value.trim();
+    const content = document.getElementById('entryContent').value.trim();
+    const tags = document.getElementById('entryTags').value.trim();
+
+    if (!content) return showError('Write something!');
+
+    try {
+      const res = await fetch(`${PB_URL}/api/collections/entries/records`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken
+        },
+        body: JSON.stringify({
+          user: currentUser.id,
+          user_email: currentUser.email,
+          username: currentUser.username,
+          profile_pic: currentUser.profile_pic || null,
+          title: title || 'Untitled',
+          content: content,
+          mood: selectedMood,
+          tags: tags || null
+        })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      document.getElementById('entryTitle').value = '';
+      document.getElementById('entryContent').value = '';
+      document.getElementById('entryTags').value = '';
+      showSuccess('Memory saved! 🎉');
+      loadEntries();
+    } catch (err) {
+      showError('Save error: ' + err.message);
+    }
+  };
+
+  async function loadEntries() {
+    if (!currentUser) return;
+
+    try {
+      const res = await fetch(
+        `${PB_URL}/api/collections/entries/records?filter=user='${currentUser.id}'&sort=-created`,
+        {
+          headers: { 'Authorization': authToken }
+        }
+      );
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const entries = data.items || [];
+
+      if (entries.length === 0) {
+        timeline.innerHTML = '<p style="color:#a7a9be;">No memories yet. Start writing! 📝</p>';
+        return;
+      }
+
+      timeline.innerHTML = entries.map(entry => {
+        const date = entry.created ? new Date(entry.created).toLocaleString() : 'Just now';
+        const moodEmojis = ['😢','😕','😐','😊','🤩'];
+        const profilePic = entry.profile_pic ? `${PB_URL}/api/files/users/${entry.user}/${entry.profile_pic}` : '';
+        const tags = entry.tags ? entry.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        
+        return `
+          <div class="card">
+            <div class="entry-author">
+              <img class="profile-pic" src="${profilePic || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Crect width="40" height="40" fill="%232d2d44"/%3E%3Ctext x="20" y="26" text-anchor="middle" font-size="18" fill="%23a7a9be"%3E' + (entry.username?.[0]?.toUpperCase() || '?') + '%3C/text%3E%3C/svg%3E'}" alt="">
+              <span class="name">${entry.username || entry.user_email}</span>
+              <span class="private-badge">🔒 Private</span>
+              <span style="margin-left:auto;font-size:0.8rem;color:#a7a9be;">${date}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div class="title">${entry.title}</div>
+              <span class="mood">${moodEmojis[entry.mood-1] || '😐'}</span>
+            </div>
+            <div class="content">${entry.content}</div>
+            ${tags.length ? `<div style="margin-top:8px;">${tags.map(t => `<span class="tag">#${t}</span>`).join('')}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      showError('Failed to load: ' + err.message);
+    }
+  }
+
+  const savedToken = localStorage.getItem('pb_token');
+  const savedUser = localStorage.getItem('pb_user');
+
+  if (savedToken && savedUser) {
+    authToken = savedToken;
+    currentUser = JSON.parse(savedUser);
+    
+    authSection.classList.add('hidden');
+    mainSection.classList.remove('hidden');
+    greeting.textContent = `Hey, ${currentUser.username} 👋`;
+    
+    if (currentUser.profile_pic) {
+      profileImg.src = `${PB_URL}/api/files/users/${currentUser.id}/${currentUser.profile_pic}`;
+    }
+    
+    loadEntries();
+
+    refreshInterval = setInterval(() => {
+      if (currentUser) loadEntries();
+    }, 10000);
+  }
+</script>
+</body>
+</html>
